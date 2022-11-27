@@ -1,0 +1,32 @@
+{
+   "SERVER":{
+      "SSID":"leiw",
+      "WIFIPWD":"1977517000",
+      "PORT":8080
+   },
+   "LED":{
+      "ClockPin":16,
+      "DioPin":17
+   },
+   "UltraS":{
+      "TriggerPin":14,
+      "EchoPin":15,
+      "HomeDist":30
+   },
+   "Schedule":{
+      "End":830,
+      "Start":1823
+   },
+   "Tempture":{
+      "dsPin":18
+   },
+   "Heater":{
+      "HeatPin":09,
+      "minTempP":28,
+      "minTempA":15
+   },
+   "HomeAway":{
+      "ButtonPin":28,
+      "LedPin":26
+   }
+}
