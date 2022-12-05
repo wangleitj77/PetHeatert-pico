@@ -44,6 +44,7 @@ class Control:
         #self.homeDist  = config['UltraS']['HomeDist'] # max distance of home statue
         self.startTime = config['Schedule']['Start']  # heating start time
         self.endTime   = config['Schedule']['End']    # heating end time
+        self.IgnoreHome = config['HomeAway']['Ignore']    # False : heating only when home
         
     def run(self):
         while True:
@@ -54,7 +55,7 @@ class Control:
             if self.manualMode:
                 #manualMode, do not control heater
                 continue
-            elif not(self.isHome() and self.isTiming()): 
+            elif not((self.IgnoreHome=='True' or self.isHome()) and self.isTiming()): 
                 #Not Home and in time then stop heating
                 self.heatOff()
             else:
@@ -71,7 +72,7 @@ class Control:
 
     #show 7-seg LED
     def displayLED(self):
-        print(f'count={self.cnt}')
+        #print(f'count={self.cnt}')
         if self.cnt < 5:
             self.displayCurrentTime()
         elif self.cnt <7:
@@ -107,7 +108,7 @@ class Control:
             #self.mydisplay.scroll(f"P {d0} A {d1}")
             s = 'P' if index==0 else 'A'
             self.mydisplay.show(f"{s} {d[index]}")
-            print(f"show temp{dgs}, cnt={self.cnt}")
+            #print(f"show temp{dgs}, cnt={self.cnt}")
 
     
     #display Home or AWAY

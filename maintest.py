@@ -8,24 +8,18 @@ g_startAt = "" #record the starting time from world time API
 g_cn = False #Control center
 g_ps = False #Pico Server
 def startServer():
-    global g_ps,g_cn
-    g_ps = Pserver(g_cn, config)
+    global g_ps
+    g_ps = Pserver(config)
     g_ps.startWifiServer()
-    #syncTime()
-    g_ps.processReq()
+    syncTime()
+    
 
 def startControl():
-    syncTime()
+    #syncTime()
     g_cn.run()
 
 config = {}
-#config = {'LED':{'ClockPin':16, 'DioPin':17},
-#          'Tempture':{'dsPin':18},
-#          'Heater':{'HeatPin':13, 'minTempP':21, 'minTempA':15},
-#          'UltraS':{'TriggerPin':14,'EchoPin':15, 'HomeDist':30},
-#          'HomePin':15
-#          'Schedule':{'Start':18,'End':8}
-#          }
+
 
 def readConfig():
     f = open('config.json', 'r')
@@ -49,6 +43,7 @@ def syncTime():
     print(f"Current time: {g_startAt}")
 
 config = readConfig()
-g_cn = Control(config)
-_thread.start_new_thread(startControl, ())
 startServer()
+g_cn = Control(config)
+_thread.start_new_thread(g_cn.run, ())
+g_ps.processReq(g_cn)

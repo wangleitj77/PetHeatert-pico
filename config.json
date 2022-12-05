@@ -27,6 +27,7 @@
    },
    "HomeAway":{
       "ButtonPin":28,
-      "LedPin":26
+      "LedPin":26,
+      "Ignore":false
    }
 }

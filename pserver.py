@@ -4,12 +4,12 @@ import time
 import _thread
 import urequests
 import utime
+import json
 
 from machine import Pin
 
 class Pserver:
-    def __init__(self, control, config):
-        self.control = control
+    def __init__(self, config):
         self.config = config
         self.ssid = config['SERVER']['SSID']
         self.password = config['SERVER']['WIFIPWD']
@@ -70,32 +70,45 @@ class Pserver:
         request.close()
         return ret
 
-
         
-    def processReq(self):
+    def processReq(self, control):
+        self.control = control
         # Listen for connections
         while True:
             try:
+                print('waiting for request')
                 cl, addr = self.s.accept()
                 print('client connected from', addr)
                 request = cl.recv(1024)
-                print(request)
 
-                request = str(request)
+                request = request.decode("utf-8")
+                res = request.split()
+                print(res)
+                for para in res:
+                    print(para)
                 
-                temps = self.control.getTemps()
-                isHome = "Home" if self.control.isHome() else "Away"
-                isHeating = "Yes" if self.control.isHeating() else "No"
-                datetm = utime.localtime()
-                dateStr = f"{datetm[0]}/{datetm[1]}/{datetm[2]} {datetm[3]}:{datetm[4]}:{datetm[5]}"
-                tempStr = f"<br/><br/>Current Time: {dateStr}<br/><br/>Heating: {isHeating}<br/><br/>Current temptures: {temps}<br/><br>Home Statue: {isHome}<br/><br>Manual Control: {self.control.manualMode}<br/><br>Config: {self.config}"
+                if len(res)<=2:
+                    print('connection closed due to less request content')
+                    cl.close()
+                    continue
+                
+                respon = ""
+                if res[1] == '/status':
+                    respon = json.dumps(self.getStatus())
+                elif res[1] == '/set':
+                    respon = json.dumps(self.setValues(request))
+                elif res[1] == '/cmd':
+                    respon = json.dumps(self.Heating(request))
+                else:
+                    respon = "{'err':'No such service'}"
+                
                 
 
-                stateis = request
-                response = self.html % tempStr
+                #stateis = request
+                #response = json.dumps(ret_status)
 
-                cl.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
-                cl.send(response)
+                cl.send('HTTP/1.0 200 OK\r\nContent-type:application/json \r\n\r\n')
+                cl.send(respon)
                 cl.close()
                 
                 if request.find('stopme') >= 0:
@@ -107,6 +120,73 @@ class Pserver:
             except OSError as e:
                 print('connection closed due to exceptions')
                 cl.close()
-                self.stopWifiServer()
+                #self.stopWifiServer()
                 
-                
+    def getStatus(self):
+        print('getStatus')
+        temps = self.control.getTemps()
+        isHome = "Home" if self.control.isHome() else "Away"
+        isHeating = "Yes" if self.control.isHeating() else "No"
+        datetm = utime.localtime()
+        dateStr = f"{datetm[0]}/{datetm[1]}/{datetm[2]} {datetm[3]}:{datetm[4]}:{datetm[5]}"
+        
+        ret_status = {'now' : dateStr,
+                      'home' : isHome,
+                      'heating' : isHeating,
+                      'temptures' : temps,
+                      'mode' : 'Manual' if self.control.manualMode else 'Auto',
+                      'config' : self.config
+                      }
+        return ret_status
+    
+    def setValues(self, request):
+        print(f'SetValues:{request}')
+        res = request.split('\r\n\r\n')
+        if len(res)<=1:
+            err = {'error':'Set Value Content Not Found'}
+            return err
+        
+        try:
+            params = json.loads(res[1])
+            print(f'Get content:{params}')
+            for pkey in params.keys():
+                if pkey == 'mode':
+                    self.control.setMode( True if params[pkey]=='Manual' else False )
+                    continue
+                for subkey in params[pkey].keys():
+                    if pkey in self.config and subkey in self.config[pkey]:
+                        print(f'found keys:{pkey}.{subkey}={params[pkey][subkey]}')
+                        self.config[pkey][subkey] = params[pkey][subkey]
+                        self.control.setConfig(self.config)
+                        self.writeConfig(self.config)
+
+            return self.getStatus()
+        except Exception as e:
+            err = {'error':e}
+            return err
+        
+        
+    def Heating(self,request):
+        print(f'Heating:{request}')
+        res = request.split('\r\n\r\n')
+        if len(res)<=1:
+            err = {'error':'Heating Content Not Found'}
+            return err
+        
+        try:
+            params = json.loads(res[1])
+            print(f'Get Heating content:{params}')
+            for pkey in params.keys():
+                if pkey == 'Heating':
+                    self.control.manualHeat( True if params[pkey]=='On' else False )
+                    continue
+
+            return self.getStatus()
+        except Exception as e:
+            err = {'error':e}
+            return err
+        
+    def writeConfig(self, config):
+        f = open('config.json', 'w')
+        f.write(json.dumps(config))
+        f.close()
