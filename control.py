@@ -63,7 +63,13 @@ class Control:
                 if len(self.degrees) >1 and (self.minTempP > self.degrees[0] or self.minTempA > self.degrees[1]):
                     self.heatOn()
                 else:
-                    self.heatOff()
+                   #heating one more degree if it is heating now
+                   #to avoid off too soon
+                   if self.isHeating() and len(self.degrees) >1 and (self.minTempP+1 > self.degrees[0] or self.minTempA+1 > self.degrees[1]):
+                        #not stop heating
+                       self.heatOn()
+                   else:
+                       self.heatOff()
                     
             self.displayLED()
             self.cnt += 1
@@ -73,15 +79,17 @@ class Control:
     #show 7-seg LED
     def displayLED(self):
         #print(f'count={self.cnt}')
-        if self.cnt < 5:
+        if self.cnt <= 3:
             self.displayCurrentTime()
-        elif self.cnt <7:
+        elif self.cnt <=6:
             self.displayAllTemps(0)
-        elif self.cnt <9:
+        elif self.cnt <=9:
             self.displayAllTemps(1)
 
         #self.displayHomeStatus()
         #sleep(1)
+    def displayText(self, text):
+        self.mydisplay.show(text)
         
     #refresh tempture
     def refreshTempture(self):

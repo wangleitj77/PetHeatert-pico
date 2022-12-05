@@ -9,7 +9,8 @@ import json
 from machine import Pin
 
 class Pserver:
-    def __init__(self, config):
+    def __init__(self, config, control):
+        self.control = control
         self.config = config
         self.ssid = config['SERVER']['SSID']
         self.password = config['SERVER']['WIFIPWD']
@@ -28,11 +29,14 @@ class Pserver:
         self.stopWifiServer()
         
     def startWifiServer(self):
+        
+        self.control.displayText('WIFI')
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
         self.wlan.connect(self.ssid, self.password)
         max_wait = 20
         while max_wait > 0:
+            self.control.displayText('WAIT')
             if self.wlan.status() < 0 or self.wlan.status() >= 3:
                 break
             max_wait -= 1
@@ -40,8 +44,10 @@ class Pserver:
             time.sleep(1)
 
         if self.wlan.status() != 3:
+            self.control.displayText('ERRO')
             raise RuntimeError('network connection failed')
         else:
+            self.control.displayText('YEAH')
             print('connected')
             status = self.wlan.ifconfig()
             print( 'ip = ' + status[0] )
@@ -71,8 +77,8 @@ class Pserver:
         return ret
 
         
-    def processReq(self, control):
-        self.control = control
+    def processReq(self):
+        
         # Listen for connections
         while True:
             try:
